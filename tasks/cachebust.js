@@ -52,11 +52,23 @@ module.exports = function(grunt) {
         // Go through each source file and replace terms
         getFilesToBeRenamed(this.files).forEach(replaceInFile);
 
+        function escapeStr(s) {
+            return String(s).replace(/[\\^$*+?.()|[\]{}]/g, '\\$&');
+        }
+
         function replaceInFile(filepath) {
             var markup = grunt.file.read(filepath);
 
             _.each(assetMap, function(hashed, original) {
-                markup = markup.split(original).join(hashed);
+                // markup = markup.split(original).join(hashed);
+
+                // get file extension and the before file path
+                var extOriginal = original.split('.').slice(-1),
+                    trunkOriginal = original.split('.').slice(0, -1).join('.');
+
+                var pattOrigFile = new RegExp(escapeStr(original) +"(\\?[a-fA-F0-9]{"+ opts.length +"})?|("+ escapeStr(trunkOriginal+opts.separator) +"[a-fA-F0-9]{"+ opts.length +"}\\."+ extOriginal +")", "gm");
+
+                markup = markup.replace(pattOrigFile, hashed);
             });
 
             grunt.file.write(filepath, markup);
