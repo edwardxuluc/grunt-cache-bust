@@ -36,21 +36,23 @@ module.exports = function(grunt) {
             fs.removeSync(path.resolve((discoveryOpts.cwd ? discoveryOpts.cwd + opts.clearOutputDir : opts.clearOutputDir)));
         }
 
-        // delete old hash files
-        if(opts.deleteOldHashFiles) {
-            var assetJSON = grunt.file.readJSON( path.resolve(opts.baseDir, opts.jsonOutputFilename) );
-
-            _.each(assetJSON, function (hashed, original) {
-                fs.removeSync(path.resolve(opts.baseDir, hashed));
-            });
-        }
-
         // Generate an asset map
         var assetMap = grunt.file
             .expand(discoveryOpts, opts.assets)
             .sort()
             .reverse()
             .reduce(hashFile, {});
+
+        // delete old hash files
+        if(opts.deleteOldHashFiles) {
+            var assetJSON = grunt.file.readJSON( path.resolve(opts.baseDir, opts.jsonOutputFilename) );
+
+            _.each(assetJSON, function (hashed, original) {
+                if( !_.contains(_.values(assetMap), hashed) && hashed !== original ){
+                    fs.removeSync(path.resolve(opts.baseDir, hashed));
+                }
+            });
+        }
 
         grunt.verbose.write('Assets found:', assetMap);
 
@@ -75,7 +77,7 @@ module.exports = function(grunt) {
                 var extOriginal = original.split('.').slice(-1),
                     trunkOriginal = original.split('.').slice(0, -1).join('.');
 
-                var pattOrigFile = new RegExp(escapeStr(original) +"(\\?[a-fA-F0-9]{"+ opts.length +"})?|("+ escapeStr(trunkOriginal+opts.separator) +"[a-fA-F0-9]{"+ opts.length +"}\\."+ extOriginal +")", "gm");
+                var pattOrigFile = new RegExp(escapeStr(original) +"(\\?[a-fA-F0-9]+)?|("+ escapeStr(trunkOriginal+opts.separator) +"[a-fA-F0-9]+\\."+ extOriginal +")", "gm");
 
                 markup = markup.replace(pattOrigFile, hashed);
             });
