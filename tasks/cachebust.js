@@ -11,6 +11,7 @@ var DEFAULT_OPTIONS = {
     baseDir: './',
     createCopies: true,
     deleteOriginals: false,
+    deleteOldHashFiles: false,
     encoding: 'utf8',
     jsonOutput: false,
     jsonOutputFilename: 'grunt-cache-bust.json',
@@ -33,6 +34,15 @@ module.exports = function(grunt) {
         //clear output dir if it was set
         if(opts.clearOutputDir && opts.outputDir.length > 0) {
             fs.removeSync(path.resolve((discoveryOpts.cwd ? discoveryOpts.cwd + opts.clearOutputDir : opts.clearOutputDir)));
+        }
+
+        // delete old hash files
+        if(opts.deleteOldHashFiles) {
+            var assetJSON = grunt.file.readJSON( path.resolve(opts.baseDir, opts.jsonOutputFilename) );
+
+            _.each(assetJSON, function (hashed, original) {
+                fs.removeSync(path.resolve(opts.baseDir, hashed));
+            });
         }
 
         // Generate an asset map
@@ -60,7 +70,6 @@ module.exports = function(grunt) {
             var markup = grunt.file.read(filepath);
 
             _.each(assetMap, function(hashed, original) {
-                // markup = markup.split(original).join(hashed);
 
                 // get file extension and the before file path
                 var extOriginal = original.split('.').slice(-1),
@@ -87,7 +96,7 @@ module.exports = function(grunt) {
                 }
 
                 if (opts.deleteOriginals) {
-                    grunt.file.delete(absPath);
+                    grunt.file.delete(absPath, {force: true});
                 }
             }
 
@@ -108,7 +117,7 @@ module.exports = function(grunt) {
                 var pathToFile = opts.outputDir.length > 0 ? path.join(opts.outputDir, parsed.pathname.replace(/^.*[\\\/]/, '')) : parsed.pathname;
                 var ext = path.extname(parsed.pathname);
 
-                return (parsed.hostname ? parsed.protocol + parsed.hostname : '') + pathToFile.replace(ext, '') + separator + hash + ext;
+                return (parsed.hostname ? parsed.protocol + parsed.hostname : '') + pathToFile.replace(ext, '') + (hash ? separator + hash : '') + ext;
             }
         }
 
